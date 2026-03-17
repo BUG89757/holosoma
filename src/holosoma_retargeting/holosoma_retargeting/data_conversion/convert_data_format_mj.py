@@ -353,6 +353,25 @@ def world_body_velocities(model, data):
     return lin_w, ang_w
 
 
+def shutdown_viewer(viewer, timeout_s: float = 2.0) -> None:
+    """Gracefully stop the MuJoCo passive viewer thread."""
+    if viewer is None:
+        return
+
+    viewer.close()
+    is_running = getattr(viewer, "is_running", None)
+    if not callable(is_running):
+        return
+
+    deadline = time.perf_counter() + timeout_s
+    while time.perf_counter() < deadline:
+        if not is_running():
+            return
+        time.sleep(0.01)
+
+    print("[WARN]: Timed out waiting for MuJoCo viewer shutdown.")
+
+
 def run_simulator(args_cli: DataConversionConfig):
     """Runs the simulation loop."""
     joint_names = args_cli.JOINT_NAMES
@@ -531,7 +550,13 @@ def run_simulator(args_cli: DataConversionConfig):
             )
 
         mujoco.mj_forward(robot, robot_data)
-        viewer.sync()
+        if viewer is not None:
+            viewer.sync()
+            is_running = getattr(viewer, "is_running", None)
+            if callable(is_running) and not is_running():
+                print("[INFO]: Viewer closed by user, stopping replay loop.")
+                shutdown_viewer(viewer)
+                break
 
         end_time = time.perf_counter()
         time.sleep(max(0, motion.output_dt - (end_time - start_time)))
@@ -597,8 +622,11 @@ def run_simulator(args_cli: DataConversionConfig):
 
         if args_cli.once and file_saved:
             print("[INFO]: Motion replay completed, exiting...")
-            viewer.close()
-            break
+            sys.stdout.flush()
+            sys.stderr.flush()
+            # The conversion result has already been written. Exiting the process
+            # directly avoids a native teardown crash in MuJoCo passive viewer.
+            os._exit(0)
 
 
 def main(args_cli: DataConversionConfig):

@@ -7,7 +7,9 @@ elif [ -n "${ZSH_VERSION}" ]; then
 fi
 
 # Use CONDA_ENV_NAME if provided, otherwise default to "hsmujoco"
-CONDA_ENV_NAME=${CONDA_ENV_NAME:-hsmujoco}
+# CONDA_ENV_NAME=${CONDA_ENV_NAME:-hsmujoco}
+CONDA_ENV_NAME=hsmujoco
+
 echo "conda environment name is set to: $CONDA_ENV_NAME"
 
 source ${SCRIPT_DIR}/source_common.sh

@@ -91,15 +91,22 @@ else
         echo "LAFAN BVH files already extracted. Skipping extraction."
     fi
 
-    # Ensure lafan1 processing code is available in data_utils
+    # Ensure lafan1 processing code is available in data_utils.
+    # Download the GitHub source tarball instead of cloning to avoid requiring git-lfs.
     if [ ! -d "$DATA_UTILS_DIR/lafan1" ]; then
-        echo "Cloning ubisoft-laforge-animation-dataset for processing code..."
-        cd "$DATA_UTILS_DIR"
-        if [ ! -d "ubisoft-laforge-animation-dataset" ]; then
-            git clone -q https://github.com/ubisoft/ubisoft-laforge-animation-dataset.git
-        fi
-        if [ -d "ubisoft-laforge-animation-dataset/lafan1" ] && [ ! -d "lafan1" ]; then
-            mv ubisoft-laforge-animation-dataset/lafan1 .
+        echo "Downloading ubisoft-laforge-animation-dataset source tarball for processing code..."
+        LAFAN_REPO_TARBALL="$DATA_UTILS_DIR/ubisoft-laforge-animation-dataset.tar.gz"
+        LAFAN_REPO_EXTRACT_DIR="$DATA_UTILS_DIR/ubisoft-laforge-animation-dataset-src"
+        curl -L -o "$LAFAN_REPO_TARBALL" \
+            "https://github.com/ubisoft/ubisoft-laforge-animation-dataset/archive/refs/heads/master.tar.gz"
+        mkdir -p "$LAFAN_REPO_EXTRACT_DIR"
+        tar -xzf "$LAFAN_REPO_TARBALL" -C "$LAFAN_REPO_EXTRACT_DIR"
+
+        if [ -d "$LAFAN_REPO_EXTRACT_DIR/ubisoft-laforge-animation-dataset-master/lafan1" ]; then
+            mv "$LAFAN_REPO_EXTRACT_DIR/ubisoft-laforge-animation-dataset-master/lafan1" "$DATA_UTILS_DIR/"
+        else
+            echo "Error: lafan1 processing code not found in downloaded source tarball."
+            exit 1
         fi
         cd "$RETARGET_DIR"
     else
